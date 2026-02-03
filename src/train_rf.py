@@ -1,43 +1,40 @@
 import os
+import pickle
 import numpy as np
-import joblib
-from preprocess import load_audio, normalize
-from fft_features import extract_fft
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
+from preprocess import load_audio
+from fft_features import extract_fft_features
 
 DATA_DIR = "../data/raw"
+CLASSES = ["normal", "copd", "pneumonia"]  # asthma excluded
 
 X, y = [], []
 
-for label, value in [("normal", 0), ("abnormal", 1)]:
-    folder = os.path.join(DATA_DIR, label)
-    for file in os.listdir(folder):
+for label in CLASSES:
+    class_dir = os.path.join(DATA_DIR, label)
+    for file in os.listdir(class_dir):
         if file.endswith(".wav"):
-            signal = load_audio(os.path.join(folder, file))
-            signal = normalize(signal)
-            features = extract_fft(signal)
+            path = os.path.join(class_dir, file)
+            signal = load_audio(path)
+            if signal is None:
+                 continue
+            features = extract_fft_features(signal)
+  
             X.append(features)
-            y.append(value)
+            y.append(label)
 
 X = np.array(X)
 y = np.array(y)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-
 model = RandomForestClassifier(
-    n_estimators=150,
+    n_estimators=200,
     random_state=42
 )
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+model.fit(X, y)
 
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print(classification_report(y_test, y_pred))
+os.makedirs("../model", exist_ok=True)
+with open("../model/rf_model.pkl", "wb") as f:
+    pickle.dump(model, f)
 
-joblib.dump(model, "../model/rf_model.pkl")
-print("Model saved")
+print("✅ Random Forest trained (normal / copd / pneumonia)")

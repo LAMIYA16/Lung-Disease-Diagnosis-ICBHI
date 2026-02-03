@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Data (optional – recommended)
+data/raw/
+data/processed/
+
+# Models
+*.pkl
+
+# VS Code
+.vscode/
